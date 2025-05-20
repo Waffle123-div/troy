@@ -1,0 +1,70 @@
+using System;
+using System.Data;
+using System.Configuration;
+using MySql.Data.MySqlClient;
+using System.Web.UI.WebControls;
+using System.Web.UI;
+
+public partial class Dashboard : System.Web.UI.Page
+{
+    private void LoadUserBookings()
+    {
+        string connectionString = ConfigurationManager.ConnectionStrings["EventBookingDBConnection"].ConnectionString;
+        using (MySqlConnection conn = new MySqlConnection(connectionString))
+        {
+            try
+            {
+                conn.Open();
+                // Use "id" instead of "booking_id" - adjust this to match your actual database column name
+                string query = @"SELECT 
+                                b.id as booking_id,
+                                b.venue_id,
+                                b.event_date,
+                                b.event_time,
+                                b.status
+                                FROM BookingRequests b
+                                WHERE b.UserID = @UserID
+                                ORDER BY b.event_date DESC";
+
+                using (MySqlCommand cmd = new MySqlCommand(query, conn))
+                {
+                    cmd.Parameters.AddWithValue("@UserID", Session["UserID"]);
+                    using (MySqlDataAdapter adapter = new MySqlDataAdapter(cmd))
+                    {
+                        DataTable dt = new DataTable();
+                        adapter.Fill(dt);
+                        GridView1.DataSource = dt;
+                        GridView1.DataBind();
+                    }
+                }
+            }
+            catch (MySqlException ex)
+            {
+                // For database schema issues, show a friendly message and still display the page
+                System.Diagnostics.Debug.WriteLine(string.Format("Database error: {0}", ex.Message));
+                
+                // Create an empty data table to bind to the grid
+                DataTable emptyTable = new DataTable();
+                emptyTable.Columns.Add("booking_id", typeof(int));
+                emptyTable.Columns.Add("venue_id", typeof(int));
+                emptyTable.Columns.Add("event_date", typeof(DateTime));
+                emptyTable.Columns.Add("event_time", typeof(string));
+                emptyTable.Columns.Add("status", typeof(string));
+                
+                GridView1.DataSource = emptyTable;
+                GridView1.DataBind();
+                
+                ScriptManager.RegisterStartupScript(this, GetType(), "DatabaseError", 
+                    "alert('There was an issue connecting to the booking database. Please contact the administrator. Error: " + 
+                    ex.Message.Replace("'", "\\'") + "');", true);
+            }
+            catch (Exception ex)
+            {
+                // For other exceptions
+                System.Diagnostics.Debug.WriteLine(string.Format("Error loading user bookings: {0}", ex.Message));
+                ScriptManager.RegisterStartupScript(this, GetType(), "LoadError", 
+                    string.Format("alert('Error loading bookings: {0}');", ex.Message.Replace("'", "\\'")), true);
+            }
+        }
+    }
+} 
