@@ -84,11 +84,66 @@
     xsltOutput: document.getElementById('xsltOutput')
   };
 
+  // Lightweight preview binding for Add Student (no function changes)
+  function bindAddPreview() {
+    const nameInput = document.getElementById('addName');
+    const idInput = document.getElementById('addId');
+    const nameOut = document.getElementById('addPreviewName');
+    const idOut = document.getElementById('addPreviewId');
+    if (!nameOut && !idOut) return;
+
+    const update = () => {
+      if (nameOut) {
+        const nm = (nameInput && nameInput.value || '').trim();
+        nameOut.textContent = nm || '—';
+      }
+      if (idOut) {
+        const rawId = (idInput && idInput.value || '').trim();
+        idOut.textContent = /^\d{1,6}$/.test(rawId) ? String(rawId).padStart(6, '0') : '000000';
+      }
+    };
+    if (nameInput) nameInput.addEventListener('input', update);
+    if (idInput) idInput.addEventListener('input', update);
+    const addForm = document.getElementById('addForm');
+    if (addForm) addForm.addEventListener('reset', () => setTimeout(update, 0));
+    update();
+  }
+
+  // Ensure preview binding when navigating to Add page
+  document.addEventListener('click', (e) => {
+    const target = /** @type {HTMLElement} */(e.target);
+    const nav = target && target.closest ? target.closest('.nav-item[data-page="add"]') : null;
+    if (nav) {
+      setTimeout(() => bindAddPreview(), 0);
+    }
+  });
+
+  // Fallback: update preview via delegated input events (works even if not bound)
+  document.addEventListener('input', (e) => {
+    const t = /** @type {HTMLElement} */(e.target);
+    if (!t) return;
+    if (t.id === 'addName' || t.id === 'addId') {
+      const nameInput = document.getElementById('addName');
+      const idInput = document.getElementById('addId');
+      const nameOut = document.getElementById('addPreviewName');
+      const idOut = document.getElementById('addPreviewId');
+      if (nameOut) {
+        const nm = (nameInput && nameInput.value || '').trim();
+        nameOut.textContent = nm || '—';
+      }
+      if (idOut) {
+        const rawId = (idInput && idInput.value || '').trim();
+        idOut.textContent = /^\d{1,6}$/.test(rawId) ? String(rawId).padStart(6, '0') : '000000';
+      }
+    }
+  });
+
   // ---------- Initialization ----------
   window.addEventListener('DOMContentLoaded', async () => {
     initTheme();
     initCurrentDate();
     wireHandlers();
+    bindAddPreview();
     await loadXML();
   });
 
